@@ -1,8 +1,9 @@
-from tfiac import Tfiac, ON_MODE, OPERATION_MODE, TARGET_TEMP, FAN_MODE, SWING_MODE, SET_SWING
-from time import sleep
 import unittest
+from pytfiac import Tfiac, ON_MODE, OPERATION_MODE, TARGET_TEMP, FAN_MODE, SWING_MODE, SET_SWING
+from time import sleep
+from unittest import IsolatedAsyncioTestCase
 
-HOST = '192.168.1.108'
+HOST = '192.168.1.22'
 
 
 OPERATION_LIST = ['heat', 'selfFeel', 'dehumi', 'fan', 'cool']
@@ -22,31 +23,49 @@ MAX_TEMP = 88
 SHORT_WAIT = 2
 LONG_WAIT = 3
 
-class TfiacTest(unittest.TestCase):
+class TfiacTest(IsolatedAsyncioTestCase):
     def setUp(self):
         self.tfiac = Tfiac(HOST)
 
     def test_init(self):
         sleep(SHORT_WAIT)
         status = self.tfiac.status
+        print(status.get(ON_MODE))
         self.assertTrue(status.get(ON_MODE))
         print ("Current status is {}".format(status[ON_MODE]))
         self.assertIn(status[ON_MODE], ['on', 'off'])
 
-    def switch(self, tfiac, on_off):
-        tfiac.set_state(ON_MODE, on_off)
+    async def switch(self, tfiac, on_off):
+        await tfiac.set_state(ON_MODE, on_off)
         sleep(SHORT_WAIT)
-        tfiac.update()
+        await tfiac.update()
+        print ("---->>>  Current status is {}".format(tfiac.status[ON_MODE]))
         self.assertEqual(tfiac.status[ON_MODE], on_off)
     
-    def test_power(self):
-        self.switch(self.tfiac, 'off')
+    async def test_power(self):
+        await self.switch(self.tfiac, 'off')
         sleep(SHORT_WAIT)
-        self.switch(self.tfiac, 'on')
+        await self.switch(self.tfiac, 'on')
         sleep(SHORT_WAIT)
-        self.switch(self.tfiac, 'off')
+        await self.switch(self.tfiac, 'off')
         sleep(SHORT_WAIT)
     
+    async def test_power_on(self):
+        state = 'on'
+        await self.switch(self.tfiac, state)
+        sleep(SHORT_WAIT)
+        self.assertTrue(self.tfiac.status.get(ON_MODE))
+        self.assertIn(self.tfiac.status[ON_MODE], ['on', 'off'])
+        self.assertEqual(self.tfiac.status[ON_MODE], state)
+
+    async def test_power_off(self):
+        state = 'off'
+        await self.switch(self.tfiac, state)
+        sleep(SHORT_WAIT)
+        self.assertTrue(self.tfiac.status.get(ON_MODE))
+        self.assertIn(self.tfiac.status[ON_MODE], ['on', 'off'])
+        self.assertEqual(self.tfiac.status[ON_MODE], state)
+
     def change_operative_mode(self, tfiac, mode):
         tfiac.set_state(OPERATION_MODE, mode)
         sleep(SHORT_WAIT)
@@ -78,7 +97,7 @@ class TfiacTest(unittest.TestCase):
             self.assertEqual(self.tfiac.status[FAN_MODE], curr_fan)
         self.switch(self.tfiac, 'off')
     
-    def test_swing(self):
+    async def test_swing(self):
         self.switch(self.tfiac, 'on')
         for curr_mode in OPERATION_LIST:
             self.change_operative_mode(self.tfiac, curr_mode)

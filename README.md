@@ -7,3 +7,6 @@ The `tfiac` integration integrates several vendors air conditioning systems, tha
 
 
 
+## Contribution
+
+Please be aware that unittest has been setup using [IsolatedAsyncioTestCase](https://docs.python.org/3.8/library/unittest.html#unittest.IsolatedAsyncioTestCase), thus please bear in mind using at least Python 3.8 [unittest](https://docs.python.org/3.8/library/unittest.html) 
